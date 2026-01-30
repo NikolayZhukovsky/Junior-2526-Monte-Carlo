@@ -6,15 +6,13 @@ from PySide6.QtWidgets import (
     QTabWidget, QWidget, QGridLayout, QGroupBox, QDoubleSpinBox, QLineEdit, QCheckBox
 )
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Signal
 from MC_reading_csv import get_coefficients_for
 
 COEF = []
 
+
 class LayerEditor(QWidget):
-    """
-    Виджет редактирования границ одного слоя.
-    """
     boundaries_changed = Signal()
 
     def __init__(self, name: str, start_mm: float, end_mm: float, parent=None):
@@ -50,7 +48,6 @@ class LayerEditor(QWidget):
         layout.addWidget(self.sb_end)
         layout.addWidget(self.lbl_mm_end)
 
-        # Обработчик изменения границ
         self.sb_start.valueChanged.connect(self._on_boundary_changed)
         self.sb_end.valueChanged.connect(self._on_boundary_changed)
 
@@ -74,13 +71,6 @@ class LayerEditor(QWidget):
 
 
 class LayerCoeffsDisplay(QWidget):
-    """
-    Плашка отображения коэффициентов mu_a, mu_s, g, n для слоя.
-
-    В реальной интеграции значения приходят из внешнего файла (для выбраннойλ).
-    Здесь предусмотрено место под вывод значений и кнопка "Обновить данные" (stub).
-    """
-
     def __init__(self, layer_name: str, parent=None):
         super().__init__(parent)
         self.layer_name = layer_name
@@ -96,14 +86,12 @@ class LayerCoeffsDisplay(QWidget):
         layout.addWidget(self.lbl_layer, row, 0, 1, 4)
         row += 1
 
-        # Заголовки полей
         layout.addWidget(QLabel("mu_a"), row, 0)
         layout.addWidget(QLabel("mu_s"), row, 1)
         layout.addWidget(QLabel("g"), row, 2)
         layout.addWidget(QLabel("n"), row, 3)
         row += 1
 
-        # Значения — читаемость как read-only поля (во внешнем IO вы заполняете эти поля)
         self.le_mu_a = QLineEdit()
         self.le_mu_s = QLineEdit()
         self.le_g = QLineEdit()
@@ -118,13 +106,7 @@ class LayerCoeffsDisplay(QWidget):
         layout.addWidget(self.le_g, row, 2)
         layout.addWidget(self.le_n, row, 3)
 
-        # row += 1
-        # self.btn_update = QPushButton("Обновить данные (stub)")
-        # self.btn_update.setEnabled(False)  # настройте подключение к реальной функции IO
-        # layout.addWidget(self.btn_update, row, 0, 1, 4)
-
     def update_values(self, mu_a: float, mu_s: float, g: float, n: float):
-        """Обновление отображаемых значений коэффициентов."""
         self.le_mu_a.setText(f"{mu_a:.6g}")
         self.le_mu_s.setText(f"{mu_s:.6g}")
         self.le_g.setText(f"{g:.6g}")
@@ -135,11 +117,6 @@ class LayerCoeffsDisplay(QWidget):
 
 
 class LayerCoeffEditor(QWidget):
-    """
-    Виджет для редактирования коэффициентов изотропного рассеяния для одного слоя:
-    mu_s, mu_a, g, n
-    """
-
     def __init__(self, layer_name: str, parent=None):
         super().__init__(parent)
         self.layer_name = layer_name
@@ -175,7 +152,7 @@ class LayerCoeffEditor(QWidget):
         self.sb_g.setValue(0.0)
         layout.addWidget(self.sb_g)
 
-        # n (показатель преломления)
+        # n
         layout.addWidget(QLabel("n"))
         self.sb_n = QDoubleSpinBox()
         self.sb_n.setRange(1.0, 5.0)
@@ -184,9 +161,6 @@ class LayerCoeffEditor(QWidget):
         layout.addWidget(self.sb_n)
 
     def get_coeffs(self) -> Tuple[float, float, float, float]:
-        """
-        Возвращает текущие значения коэффициентов (mu_s, mu_a, g, n)
-        """
         return (
             float(self.sb_mu_s.value()),
             float(self.sb_mu_a.value()),
@@ -195,7 +169,6 @@ class LayerCoeffEditor(QWidget):
         )
 
     def set_coeffs(self, mu_s: float = 0.0, mu_a: float = 0.0, g: float = 0.0, n: float = 1.0):
-        """Установить значения коэффициентов."""
         self.sb_mu_s.setValue(mu_s)
         self.sb_mu_a.setValue(mu_a)
         self.sb_g.setValue(g)
@@ -203,14 +176,6 @@ class LayerCoeffEditor(QWidget):
 
 
 class IsotropicCoeffPanel(QWidget):
-    """
-    Панель для ввода четырех коэффициентов mu_s, mu_a, g, n
-    для одного слоя. При инициализации принимается словарь
-    текущих значений: {"mu_s": ..., "mu_a": ..., "g": ..., "n": ...}.
-    В окне создаются четыре поля ввода. Возвращается новый словарь
-    значений через метод get_coeffs().
-    """
-
     def __init__(self, initial: Optional[Dict[str, float]] = None, layer_name: str = "Layer", parent=None):
         super().__init__(parent)
         self.layer_name = layer_name
@@ -223,7 +188,6 @@ class IsotropicCoeffPanel(QWidget):
         main_layout.setContentsMargins(6, 6, 6, 6)
         main_layout.setSpacing(8)
 
-        # Рамочный блок с коэффициентами
         group_box = QGroupBox("Коэффициенты рассеяния")
         group_layout = QHBoxLayout(group_box)
         group_layout.setContentsMargins(8, 8, 8, 8)
@@ -266,12 +230,9 @@ class IsotropicCoeffPanel(QWidget):
         group_layout.addWidget(self.sb_n)
 
         main_layout.addWidget(group_box)
-        main_layout.addStretch()  # чтобы блок располагался вверху
+        main_layout.addStretch()
 
     def get_coeffs(self) -> Dict[str, float]:
-        """
-        Возвращает текущие значения коэффициентов как словарь.
-        """
         return {
             "mu_s": round(float(self.sb_mu_s.value()), 2),
             "mu_a": round(float(self.sb_mu_a.value()), 2),
@@ -280,10 +241,6 @@ class IsotropicCoeffPanel(QWidget):
         }
 
     def set_coeffs(self, data: Dict[str, float]):
-        """
-        Установить значения коэффициентов из словаря.
-        Ожидаются ключи: "mu_s", "mu_a", "g", "n".
-        """
         self.sb_mu_s.setValue(float(data.get("mu_s", 0.0)))
         self.sb_mu_a.setValue(float(data.get("mu_a", 0.0)))
         self.sb_g.setValue(float(data.get("g", 0.0)))
@@ -291,11 +248,6 @@ class IsotropicCoeffPanel(QWidget):
 
 
 class LayerCoeffEditor(QWidget):
-    """
-    Виджет для редактирования коэффициентов изотропного рассеяния для одного слоя:
-    mu_s, mu_a, g, n
-    """
-
     def __init__(self, layer_name: str, initial: Optional[Dict[str, float]] = None, parent=None):
         super().__init__(parent)
         self.layer_name = layer_name
@@ -331,7 +283,7 @@ class LayerCoeffEditor(QWidget):
         self.sb_g.setValue(0.0)
         layout.addWidget(self.sb_g)
 
-        # n (показатель преломления)
+        # n
         layout.addWidget(QLabel("n"))
         self.sb_n = QDoubleSpinBox()
         self.sb_n.setRange(1.0, 5.0)
@@ -339,7 +291,6 @@ class LayerCoeffEditor(QWidget):
         self.sb_n.setValue(1.0)
         layout.addWidget(self.sb_n)
 
-        # Установить начальные значения, если переданы
         if initial:
             self.set_coeffs(
                 mu_s=initial.get("mu_s", 0.0),
@@ -349,9 +300,6 @@ class LayerCoeffEditor(QWidget):
             )
 
     def get_coeffs(self) -> Tuple[float, float, float, float]:
-        """
-        Возвращает текущие значения коэффициентов (mu_s, mu_a, g, n)
-        """
         return (
             float(self.sb_mu_s.value()),
             float(self.sb_mu_a.value()),
@@ -360,23 +308,12 @@ class LayerCoeffEditor(QWidget):
         )
 
     def set_coeffs(self, mu_s: float = 0.0, mu_a: float = 0.0, g: float = 0.0, n: float = 1.0):
-        """Установить значения коэффициентов."""
         self.sb_mu_s.setValue(mu_s)
         self.sb_mu_a.setValue(mu_a)
         self.sb_g.setValue(g)
         self.sb_n.setValue(n)
 
-    # Панель: несколько слоёв, каждый слой имеет четыре поля ввода
     class IsotropicCoeffPanel(QWidget):
-        """
-        Панель для ввода коэффициентов mu_s, mu_a, g, n для изотропного рассеяния
-        по каждому слою. При инициализации принимается словарь текущих значений по слоям.
-
-        layers_def: List[Tuple[str, float, float]]  # список слоёв (имя, старт_mm, конец_mm)
-        initial_coeffs: Optional[Dict[str, Dict[str, float]]]  # словарь для каждого слоя:
-            { "Layer 1": {"mu_s": ..., "mu_a": ..., "g": ..., "n": ...}, ... }
-        """
-
         def __init__(
                 self,
                 layers_def: List[Tuple[str, float, float]],
@@ -410,10 +347,6 @@ class LayerCoeffEditor(QWidget):
             main_layout.addStretch()
 
         def get_coeffs_per_layer(self) -> List[Tuple[str, float, float, float, float]]:
-            """
-            Возвращает коэффициенты по слоям:
-            [(layer_name, mu_s, mu_a, g, n), ...]
-            """
             res: List[Tuple[str, float, float, float, float]] = []
             for editor in self.layer_editors:
                 mu_s, mu_a, g, n = editor.get_coeffs()
@@ -421,10 +354,6 @@ class LayerCoeffEditor(QWidget):
             return res
 
         def set_coeffs_per_layer(self, data: Dict[str, Dict[str, float]]):
-            """
-            Обновить коэффициенты для слоёв.
-            data: dict[layer_name] -> {"mu_s": ..., "mu_a": ..., "g": ..., "n": ...}
-            """
             for editor in self.layer_editors:
                 if editor.layer_name in data:
                     d = data[editor.layer_name]
@@ -436,18 +365,10 @@ class LayerCoeffEditor(QWidget):
                     )
 
         def set_layers_wave_coeffs(self, coeffs_per_layer: Dict[str, Dict[str, float]]):
-            """
-            Аналогично set_coeffs_per_layer, но для совместимости с существующим API.
-            coeffs_per_layer: dict[layer_name] -> {"mu_s":, "mu_a":, "g":, "n":}
-            """
             self.set_coeffs_per_layer(coeffs_per_layer)
 
 
 class ScenarioPanel(QWidget):
-    """
-    Панель для сценария (A или B): содержит список слоёв и область коэффициентов.
-    """
-
     def __init__(self, name: str, layers_def: List[Tuple[str, float, float]], wave=650, parent=None):
         super().__init__(parent)
         self.name = name
@@ -462,11 +383,10 @@ class ScenarioPanel(QWidget):
         main_layout.setContentsMargins(6, 6, 6, 6)
         main_layout.setSpacing(8)
 
-        # Раздел коэффициентов (для выбранной λ - вывод из файла)
+        # Раздел коэффициентов
         coeffs_box = QGroupBox(f"Коэффициенты оптических свойств (для выбранной λ = {self.wave} нм)")
         coeffs_layout = QVBoxLayout(coeffs_box)
 
-        # Архив отображения коэффициентов по слоям
         for (layer_name, _, _) in self.layers_def:
             disp = LayerCoeffsDisplay(layer_name, self)
             self.coeffs_displays.append(disp)
@@ -474,11 +394,9 @@ class ScenarioPanel(QWidget):
 
         main_layout.addWidget(coeffs_box)
 
-        # Раздел слоев
         layers_box = QGroupBox("Слои и их границы (верх/низ, мм)")
         layers_layout = QVBoxLayout(layers_box)
 
-        # Параллельно создаём виджеты слоёв
         for name, s, e in self.layers_def:
             editor = LayerEditor(name, s, e, self)
             editor.boundaries_changed.connect(self._on_boundaries_changed)
@@ -487,7 +405,6 @@ class ScenarioPanel(QWidget):
 
         main_layout.addWidget(layers_box)
 
-        # Панель управления границами (опционально — можно включить/отключить синхронизацию)
         ctrl_layout = QHBoxLayout()
         self.cb_link = QCheckBox(
             "Синхронизировать границы слоёв (верхний границы следующего слоя = нижняя граница предыдущего)")
@@ -495,27 +412,20 @@ class ScenarioPanel(QWidget):
         ctrl_layout.addWidget(self.cb_link)
         ctrl_layout.addStretch()
         main_layout.addLayout(ctrl_layout)
-
-        # Подвал панели
         main_layout.addStretch()
 
     def _on_boundaries_changed(self):
-        """Контроль последовательности слоёв и при необходимости синхронизация границ."""
         if not self.cb_link.isChecked():
             return
-        # Пример простейшей синхронизации: нижняя граница i-го слоя = верхняя граница (i+1)-го слоя
         for i in range(len(self.layer_editors) - 1):
             end_i = self.layer_editors[i].sb_end.value()
             start_next = self.layer_editors[i + 1].sb_start.value()
             if abs(end_i - start_next) > 1e-6:
-                # синхронизируем нижнюю границу i-го слоя с верхней границей следующего
                 self.layer_editors[i].sb_end.blockSignals(True)
                 self.layer_editors[i].sb_end.setValue(start_next)
                 self.layer_editors[i].sb_end.blockSignals(False)
-        # Можно реализовать более сложную логику, если нужно
 
     def get_layers(self) -> List[Tuple[str, float, float]]:
-        """Возвращает текущие границы слоёв: [(name, start_mm, end_mm), ...]"""
         res = []
         for ed in self.layer_editors:
             s, e = ed.get_boundaries()
@@ -523,11 +433,6 @@ class ScenarioPanel(QWidget):
         return res
 
     def set_wave_coeffs(self, coeffs_per_layer: Dict[str, Dict[str, float]]):
-        """
-        Обновить значения mu_a, mu_s, g, n для каждого слоя по данным from external file.
-
-        coeffs_per_layer: dict[layer_name] -> {"mu_a":, "mu_s":, "g":, "n":}
-        """
         for disp in self.coeffs_displays:
             layer = disp.layer_name
             if layer in coeffs_per_layer:
@@ -541,17 +446,13 @@ class ScenarioPanel(QWidget):
 
 
 class OpticalLayersDialog(QDialog):
-    """
-    Диалоговое окно с двумя сценариями А и B.
-    """
-
     def __init__(self, coefs, wave=650, parent=None, new_a=None, new_b=None):
         super().__init__(parent)
         self.setWindowTitle("Конфигурация слоёв тканей и параметры распространения лазера")
         self.resize(900, 450)
         self.curr_coef = coefs
 
-        self.wave_length_nm = wave  # текущая длина волны (nm)
+        self.wave_length_nm = wave  # текущая длина волны
         self.wave_label: QLabel = QLabel("λ: не задано")
 
         self._build_ui(new_a, new_b)
@@ -559,26 +460,13 @@ class OpticalLayersDialog(QDialog):
     def _build_ui(self, new_a=None, new_b=None):
         main_layout = QVBoxLayout(self)
 
-        # Вкладки сценариев
         self.tabs = QTabWidget()
         main_layout.addWidget(self.tabs)
 
-        # Сценарий A: поверхностная задача (эпидермис + верхняя дерма)
-        # layers_a = [
-        #     ("Эпидермис", 0.0, 4),
-        #     ("Дерма", 4, 10.0),
-        # ]
         layers_a = new_a
-        # self.set_wave_length_mm(nm=350)
         self.panel_a = ScenarioPanel("Сценарий A: поверхностная задача", layers_a, wave=self.wave_length_nm)
         self.tabs.addTab(self.panel_a, "Поверхностная задача")
 
-        # Сценарий B: глубинная терапия (эпидермис + дерма + гиподерма до 30 мм)
-        # layers_b = [
-        #     ("Эпидермис", 0.0, 4),
-        #     ("Дерма", 4, 8.0),
-        #     ("Гипподерма", 8.0, 10.0),
-        # ]
         layers_b = new_b
         self.panel_b = ScenarioPanel("Сценарий B: глубинная терапия", layers_b, self.wave_length_nm)
         self.tabs.addTab(self.panel_b, "Глубинная терапия")
@@ -586,7 +474,6 @@ class OpticalLayersDialog(QDialog):
         self.panel_c = IsotropicCoeffPanel(self.curr_coef)
         self.tabs.addTab(self.panel_c, "Изотропное рассеяние")
 
-        # Низ окна
         btns_layout = QHBoxLayout()
         btns_layout.addStretch()
         self.btn_ok = QPushButton("OK")
@@ -600,14 +487,6 @@ class OpticalLayersDialog(QDialog):
         self._load_coefficients_stub()
 
     def _load_coefficients_stub(self):
-        """
-        Заглушка под реальную загрузку коэффициентов из файла.
-        В реальной интеграции сюда подставляйте вашу логику чтения файла.
-
-        Ассоциация: λ выбирается из вашего внешнего файла; здесь предусмотрен вывод над
-        данными mu_a/mu_s/g/n для каждого слоя.
-        """
-        # Пример: создаём тестовые данные для иллюстрации
         if self.wave_length_nm:
             wave = int(round(self.wave_length_nm))
         else:
@@ -619,11 +498,6 @@ class OpticalLayersDialog(QDialog):
                                                         method='linear').values()
         mu_a_3, mu_s_3, g_3, n_3 = get_coefficients_for(tissue="Подкожный_жир_n10", wavelength=wave,
                                                         method='linear').values()
-
-        # print(mu_s_1, g_1, n_1)
-
-        # Шаблон словаря: для каждого слоя задаём mu_a, mu_s, g, n
-        # В реальности замените на чтение вашего файла.
         example_data = {
             "Сценарий A: поверхностная задача": {
                 "Эпидермис": {"mu_a": mu_a_1, "mu_s": mu_s_1, "g": g_1, "n": n_1},
@@ -636,33 +510,16 @@ class OpticalLayersDialog(QDialog):
             },
         }
 
-        # Пытаемся загрузить данные для активного волнового масштаба
         if self.wave_length_nm is not None:
-            # В реальном случае ключ будет по λ, например: example_data[(wave_nm)]
-            # Здесь в примере мы выбираем набор данных для сценария A и B по тексту
             for sc_name, sc_data in example_data.items():
                 if sc_name == "Сценарий A: поверхностная задача":
                     self.panel_a.set_wave_coeffs(sc_data)
                     for layer_name, vals in sc_data.items():
-                        pass  # Здесь уже обновлены в set_wave_coeffs
+                        pass
                 elif sc_name == "Сценарий B: глубинная терапия":
                     self.panel_b.set_wave_coeffs(sc_data)
 
-        # # Обновить надписи по волне на UI
-        # self.set_wave_length_nm(self.wave_length_nm)
-
     def get_configuration(self) -> Dict[str, object]:
-        """
-        Собирает конфигурацию двух сценариев в общий словарь.
-        Возвращает:
-        {
-            "wave_length_nm": float,
-            "scenarios": {
-                "A": {"layers": [(name, start, end), ...]},
-                "B": {"layers": [(name, start, end), ...]},
-            }
-        }
-        """
         cfg = {"wave_length_nm": self.wave_length_nm, "scenarios": {}}
         for key, panel in (("A", self.panel_a), ("B", self.panel_b)):
             layers = panel.get_layers()
@@ -674,20 +531,14 @@ class OpticalLayersDialog(QDialog):
 
 
 def get_config(new_wave=650, curr_coef=None, new_layers_a=None, new_layers_b=None):
-    # app = QApplication(sys.argv)
     if curr_coef is None: curr_coef = {"mu_s": 10, "mu_a": 10, "g": 9, "n": 1}
     dialog = OpticalLayersDialog(curr_coef, wave=new_wave, new_a=new_layers_a, new_b=new_layers_b)
     if dialog.exec() == QDialog.Accepted:
         config = dialog.get_configuration()
         coef = dialog.get_coefficients()
-        # Здесь можно передать конфигурацию в модель/симулятор.
-        # Пример вывода в консоль (для демонстрации):
-        # print("Полученная конфигурация слоёв и параметров:")
-        # print(config)
         return config, coef
     else:
         return {}, {}
-    # sys.exit(0)
 
 
 if __name__ == "__main__":
@@ -697,8 +548,6 @@ if __name__ == "__main__":
     if dialog.exec() == QDialog.Accepted:
         config = dialog.get_configuration()
         coef = dialog.get_coefficients()
-        # Здесь можно передать конфигурацию в модель/симулятор.
-        # Пример вывода в консоль (для демонстрации):
         print("Полученная конфигурация слоёв и параметров:")
         print(config)
         print(coef)
