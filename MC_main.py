@@ -2,7 +2,7 @@ import sys
 import numpy as np
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QComboBox,
-    QLineEdit, QGroupBox, QLabel, QCheckBox, QSpinBox
+    QGroupBox, QLabel, QCheckBox, QSpinBox
 )
 
 from PySide6.QtCore import Qt
@@ -18,9 +18,7 @@ matplotlib.rcParams['toolbar'] = 'None'
 
 
 class MplCanvas(FigureCanvas):
-    """Класс-холдер для Matplotlib Figure внутри PySide6."""
-
-    def __init__(self, parent=None, width=6, height=4, dpi=100):
+    def __init__(self, width=6, height=4, dpi=100):
         fig = Figure(figsize=(width, height), dpi=dpi)
         self.axes = fig.add_subplot(111)
         super().__init__(fig)
@@ -32,10 +30,9 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Junior_25-26 | Monte Carlo")
         self.resize(900, 700)
 
-        self._photons_colorbar_ax = None  # отдельная ось под colorbar для photons
-        self._photons_colorbar = None  # ссылка на сам colorbar
+        self._photons_colorbar_ax = None
+        self._photons_colorbar = None
 
-        # Данные по умолчанию (демо-данные; можно заменить на реальные)
         self.BINS = 51
         self.microns_per_bin = 100.0
         self.heat = []
@@ -47,7 +44,7 @@ class MainWindow(QMainWindow):
 
         self.mu_a = 5.0
         self.mu_s = 95.0
-        self.g = 0.5
+        self.g = 0
         self.n = 1.5
 
         self.is_vessel = False
@@ -56,9 +53,7 @@ class MainWindow(QMainWindow):
         self.tumor_type_index = 0
         self.ps_type_index = 0
 
-        # Хранение параметров опухоли
         self.tumor_params = {'cx': 7.5, 'cz': 4.5, 'rx': 2.6, 'rz': 4.0}
-
         self.layers_a = [("Эпидермис", 0.0, 3.5), ("Дерма", 3.5, 10.0)]
         self.layers_b = [("Эпидермис", 0.0, 2.5), ("Дерма", 2.5, 7.0), ("Гипподерма", 7.0, 12.0)]
 
@@ -115,7 +110,7 @@ class MainWindow(QMainWindow):
         self.layout.addLayout(control_layout)
         self.layout.addLayout(settings_layout)
 
-        # ---- start: опции + поле для числа фотонов ----
+        # ---- опции + поле для числа фотонов ----
         self.cb_vessel = QCheckBox("Сосуд")
         self.cb_vessel.setChecked(self.is_vessel)
         self.cb_vessel.stateChanged.connect(lambda s: self._on_flag_changed('is_vessel', s))
@@ -127,9 +122,7 @@ class MainWindow(QMainWindow):
 
         flags_box = QGroupBox("Опции:")
         flags_layout = QHBoxLayout()
-        # flags_layout.addWidget(self.cb_vessel)
         flags_layout.addWidget(self.cb_tumor)
-        # flags_layout.addStretch()
         flags_box.setLayout(flags_layout)
 
         # Блок справа: ввод числа фотонов
@@ -154,8 +147,6 @@ class MainWindow(QMainWindow):
         p_layout_2.addWidget(self.wave_input)
         wave_box.setLayout(p_layout_2)
 
-        # params_layout.addWidget(opts_widget)
-
         opts_widget = QWidget()
         opts_layout = QHBoxLayout(opts_widget)
         opts_layout.addWidget(flags_box)
@@ -164,7 +155,6 @@ class MainWindow(QMainWindow):
         opts_layout.addStretch()
         params_layout.insertWidget(0, opts_widget)
 
-        # Подключаем сигнал изменения числа фотонов
         self.photons_input.valueChanged.connect(self._on_photons_changed)
         self.wave_input.valueChanged.connect(self._on_wavelength_changed)
         # ---- end ----
@@ -178,8 +168,6 @@ class MainWindow(QMainWindow):
 
         self.tumor_params_btn.clicked.connect(self.open_tumor_params_dialog)
         self.layers_btn.clicked.connect(self.open_layer_dialog)
-
-        # Первичный отрисов
         self.update_data()
 
     def keyPressEvent(self, event):
@@ -239,7 +227,7 @@ class MainWindow(QMainWindow):
 
             self.plot_photons()
 
-    def update_mode(self):  # обработка изменения режима
+    def update_mode(self):
         idx = self.combo_2.currentIndex()
         if idx == 0:
             self.is_heterogeneous = True
@@ -313,7 +301,6 @@ class MainWindow(QMainWindow):
             next_idx = last + 1
             return Path(dir_path) / f'{base}_{next_idx:0{pad}d}.{ext}'
 
-        # Предполагаем стартовую директорию как текущую
         save_dir = os.getcwd()
         next_path = next_photons_filename(save_dir, base='photons_XZ', ext='png', pad=3)
 
@@ -329,7 +316,6 @@ class MainWindow(QMainWindow):
         else:
             path = str(p)
 
-        # Сохранение графика
         idx = self.combo.currentIndex()
         if idx == 0:
             plot = self.canvas1
@@ -339,12 +325,6 @@ class MainWindow(QMainWindow):
         print("Plot saved to", path)
 
     def plot_heat_density(self):
-        # depths = [i * self.microns_per_bin / 1000 for i in range(self.BINS - 1)]
-        # densities = []
-        # for i in range(self.BINS - 1):
-        #     val = self.heat[i] / self.microns_per_bin * 1e4 / (self.bit_value + self.photons_value)
-        #     densities.append(val)
-
         depths = []
         densities = []
         t = 4 * 3.14159 * (self.microns_per_bin ** 3) * self.photons_value / 1e12
@@ -375,16 +355,15 @@ class MainWindow(QMainWindow):
         zs = np.array(self.final_z)
 
         colors = [
-            # '#3b4b6e',
-            '#0b1f4a',  # deep blue
-            '#1f5eb3',  # blue
-            '#2cc4d0',  # cyan
-            '#4edb68',  # spring green / зелёный
-            '#8bd72e',  # chartreuse
-            '#f0d91a',  # yellow
-            '#f07a1a',  # orange
-            '#e23b3d',  # red
-            '#7f0000'  # deep red
+            '#0b1f4a',
+            '#1f5eb3',
+            '#2cc4d0',
+            '#4edb68',
+            '#8bd72e',
+            '#f0d91a',
+            '#f07a1a',
+            '#e23b3d',
+            '#7f0000'
         ]
 
         contrast_cmap = LinearSegmentedColormap.from_list('contrast_rainbow', colors, N=256)
@@ -401,17 +380,14 @@ class MainWindow(QMainWindow):
             mx_z = self.layers_a[1][2]
         elif self.combo_2.currentIndex() == 1:
             mx_z = self.layers_b[2][2]
-        # mx_xs = [0.75 * min(xs), 0.75 * max(xs)]
         mx_xs = [-30, 30]
 
         H, xedges, zedges = np.histogram2d(xs, zs, bins=[nbins, nbins],
                                            range=[mx_xs, [-0.2, mx_z]])
-        # H, xedges, zedges = np.histogram2d(xs, zs, bins=[nbins, nbins], range=[[-25, 25], [-0.2, 25]])
         H *= 2
         extent = [xedges[0], xedges[-1], zedges[0], zedges[-1]]
         im = self.canvas2.axes.imshow(H.T, extent=extent, origin='lower', aspect='auto', cmap=contrast_cmap)
 
-        # Фиксируем объект colorbar (если он уже создан, обновляем его mappable)
         if not hasattr(self, '_photons_colorbar') or self._photons_colorbar is None:
             self._photons_colorbar = self.canvas2.figure.colorbar(im, ax=self.canvas2.axes, label='Number of photons')
         else:
@@ -421,7 +397,6 @@ class MainWindow(QMainWindow):
         self.canvas2.axes.set_ylabel('Z final (mm)')
         self.canvas2.axes.set_title('Градиент распределения конечных координат фотонов (X vs Z)')
 
-        # Принудительно зафиксировать диапазоны осей
         self.canvas2.axes.set_xlim(extent[0], extent[1])
         self.canvas2.axes.set_ylim(extent[2], extent[3])
 
