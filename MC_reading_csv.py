@@ -1,34 +1,26 @@
 import csv
 from typing import Dict, List, Tuple
 
-# Типы
-CoeffEntry = Dict[str, float]  # например {'mu_s': ..., 'g': ..., 'n': ...}
-TissueData = List[Tuple[float, CoeffEntry]]  # список (λ, coeffs)
-AllData = Dict[str, TissueData]  # ткань -> список (λ, coeffs)
+CoeffEntry = Dict[str, float]
+TissueData = List[Tuple[float, CoeffEntry]]
+AllData = Dict[str, TissueData]
 
 
 def _to_float_safe(s: str) -> float:
     s = s.strip()
     if not s:
         raise ValueError("Empty value")
-    s = s.replace(',', '.')  # локализация: запятая -> точка
+    s = s.replace(',', '.')
     return float(s)
 
 
 def load_coefficients_csv(path: str, delimiter: str = ';') -> AllData:
-    """
-    Загружает коэффициенты из CSV файла.
-    Формат файла:
-    Ткань;λ;μa;μs;g;n
-    ...
-    """
     data: AllData = {}
     with open(path, 'r', encoding='utf-8') as f:
         reader = csv.reader(f, delimiter=delimiter)
         for row in reader:
             if not row:
                 continue
-            # Пробуем разобрать строку как данные. Если строка - заголовок, она будет пропущена.
             if len(row) < 6:
                 continue
             tissue = row[0].strip()
@@ -38,12 +30,10 @@ def load_coefficients_csv(path: str, delimiter: str = ';') -> AllData:
             mu_s_str = row[3].strip()
             g_str = row[4].strip()
             n_str = row[5].strip()
-
-            # Пробуем преобразовать в float. Если не удалось, считаем, что это заголовок и пропускаем.
             try:
                 lam = _to_float_safe(lam_str)
             except Exception:
-                continue  # пропускаем заголовок или некорректную строку
+                continue
 
             try:
                 mu_a = _to_float_safe(mu_a_str)
@@ -51,14 +41,13 @@ def load_coefficients_csv(path: str, delimiter: str = ';') -> AllData:
                 g = _to_float_safe(g_str)
                 n = _to_float_safe(n_str)
             except Exception:
-                continue  # пропускаем некорректную строку
+                continue
 
             coeffs = {'mu_a': mu_a, 'mu_s': mu_s, 'g': g, 'n': n}
             if tissue not in data:
                 data[tissue] = []
             data[tissue].append((lam, coeffs))
 
-    # Сортируем по λ внутри каждой ткани для удобной интерполяции
     for tissue in data:
         data[tissue].sort(key=lambda item: item[0])
 
@@ -66,13 +55,6 @@ def load_coefficients_csv(path: str, delimiter: str = ';') -> AllData:
 
 
 def get_coefficients_for(tissue: str, wavelength: float, method: str = 'nearest') -> CoeffEntry:
-    """
-    Возвращает коэффициенты для указанной ткани и длины волны.
-    method:
-      - 'nearest'  - возвращает коэффициенты при ближайшей λ
-      - 'linear'   - линейная интерполяция между соседними λ
-    Возвращает словарь {'mu_a': ..., 'mu_s': ..., 'g': ..., 'n': ...}
-    """
     data = load_coefficients_csv("MC_parameters.csv", delimiter=';')
 
     if tissue not in data:
@@ -89,12 +71,9 @@ def get_coefficients_for(tissue: str, wavelength: float, method: str = 'nearest'
         return coeffs_list[idx]
 
     if method == 'linear':
-        # Если точное совпадение - вернем его
         for lam, coeff in entries:
             if lam == wavelength:
                 return coeff
-
-        # Найдем сегмент между lam[i] <= wavelength <= lam[i+1]
         if wavelength <= lam_values[0]:
             i = 0
             j = 0
@@ -102,7 +81,6 @@ def get_coefficients_for(tissue: str, wavelength: float, method: str = 'nearest'
             i = len(lam_values) - 2
             j = len(lam_values) - 1 if len(lam_values) >= 2 else 0
         else:
-            # найти индекс i максимального lam <= wavelength
             i = max(idx for idx in range(len(lam_values)) if lam_values[idx] <= wavelength)
             j = i + 1
 
