@@ -7,41 +7,38 @@ BINS = 51
 mu_a = 5.0  # поглощение, 1/cm
 mu_s = 95.0  # рассеяние, 1/cm
 g = 0.5  # анизотропия
-n = 1.5  # индекс преломления
-microns_per_bin = 100.0  # толщина одного bin слоя (микрон)
+n = 1.5  # преломление
+microns_per_bin = 100.0
 
-photons = 20000  # количество фотонов
+photons = 20000
 wave = 650
 
-# Глобальные переменные фотона
 x = y = z = 0.0
 u = v = 0.0
 w = 1.0
 weight = 0.0
 
-# Результаты
-rs = 0.0  # специальная рефлексия (до входа в medium)
+rs = 0.0
 albedo = 0.0
 crit_angle = 0.0
 bins_per_mfp = 0.0
 heat = [0.0] * BINS
-rd = 0.0  # backscattered energy
-bit = 0.0  # сумма энергий для рулетки
+rd = 0.0
+bit = 0.0 
 
 final_x = []
 final_z = []
 
-# Параметры сосуда и фоновые оптические свойства (значения по умолчанию можно менять)
-is_vessel = True  # включить/выключить сосуд
-is_heterogeneous = True  # включить/выключить пространственную зависимость свойств
-is_tumor = True  # включить/выключить опухоль
+is_vessel = True
+is_heterogeneous = True
+is_tumor = True
 
 X_TRANS = 5.0
 
 VESSEL_CENTER_X = -8.0
-VESSEL_CENTER_Z = 3.5  # в микронах
-VESSEL_RADIUS = 0.2  # радиус
-BOUNDARY_THICKNESS = 0.2  # ширина переходной зоны в мкм (плавность)
+VESSEL_CENTER_Z = 3.5  
+VESSEL_RADIUS = 0.2  
+BOUNDARY_THICKNESS = 0.2
 
 TUMOR_CENTER_X = 7.5
 TUMOR_CENTER_Z = 4.4
@@ -53,17 +50,15 @@ MU_S_T = 180
 G_T = 0.85
 N_T = 1.39
 
-# фоновые свойства (единицы: 1/cm для mu_a, mu_s; безразмерно для g; n — безразмерно)
 MU_A_BG = mu_a
 MU_S_BG = mu_s
 G_BG = g
 N_BG = n
 
-# свойства сосуда (примерные контрастные значения)
-MU_A_VESSEL = MU_A_BG * 20.0  # сосуд намного более поглощающий
-MU_S_VESSEL = MU_S_BG * 0.9  # немного меньший сечением рассеяния
-G_VESSEL = 0.35  # более изотропное рассеяние в содержимом сосуда
-N_VESSEL = 1.36  # показатель преломления крови примерно 1.36
+MU_A_VESSEL = MU_A_BG * 20.0
+MU_S_VESSEL = MU_S_BG * 0.9
+G_VESSEL = 0.35
+N_VESSEL = 1.36
 
 MODE = "A"
 data_mode = []
@@ -72,9 +67,7 @@ COEF = []
 
 def _vessel_weight(x, z, x0=VESSEL_CENTER_X, z0=VESSEL_CENTER_Z,
                    r_v=VESSEL_RADIUS, t=BOUNDARY_THICKNESS):
-    """Плавный вес 0..1 — 1 внутри сосуда, 0 вне, сигмоида по радиусу (r в мкм)."""
     r = math.hypot(x - x0, z - z0)
-    # сигмоидный переход: when r << r_v -> weight ~1, when r >> r_v -> ~0
     return 1.0 / (1.0 + math.exp((r - r_v) / t))
 
 
@@ -87,8 +80,6 @@ def coef_for_tumor(coef_tumor):
     x0, z0, rx, rz = TUMOR_CENTER_X, TUMOR_CENTER_Z, TUMOR_RADIUS_X, TUMOR_RADIUS_Z
     r2 = ((x - x0) / rx) ** 2 + ((z - z0) / rz) ** 2
     return coef_tumor * (1.0 + 4.0 * math.exp(-r2))
-    # return MU_A_T * (1.0 + 4.0 * math.exp(-r2))
-
 
 def coef_for_hetero(coef_main, coef_bg, coef_v, x0, z0):
     if is_vessel and is_tumor:
@@ -175,8 +166,6 @@ def bounce():
     global z, w, rd, weight
     n_local = n
 
-    # if is_vessel:
-    #     n_local = n_spatial(x, z)
     if is_heterogeneous:
         n_local = n_at(z)
 
@@ -239,8 +228,7 @@ def scatter():
     global u, v, w  # Новое направление
 
     g_local = g
-    # if is_vessel:
-    #     g_local = g_spatial(x, z)
+
     if is_heterogeneous:
         g_local = g_at(x, z)
 
@@ -361,11 +349,13 @@ def get_data(new_mu_a, new_mu_s, new_g, new_n, new_is_vessel=True, new_is_hetero
     mu_a_3, mu_s_3, g_3, n_3 = get_coefficients_for(tissue="Подкожный_жир_n10", wavelength=wave,
                                                     method='linear').values()
     # mu_a = new_mu_a
+
     mu_a, mu_s, g, n = new_mu_a, new_mu_s, new_g, new_n
     global COEF
     COEF = [[mu_a_1, mu_s_1, g_1, n_1], [mu_a_2, mu_s_2, g_2, n_2], [mu_a_3, mu_s_3, g_3, n_3]]
     # mu_s, g, n = COEF[0]
-    print(wave, ':', mu_a, mu_s, g, n)
+    print(888, new_g)
+    print(1, wave, ':', mu_a, mu_s, g, n)
     print(wave, ':', COEF)
 
     heat_res, bit_res = run_mc()
