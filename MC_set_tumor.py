@@ -12,12 +12,10 @@ class TumorParamsDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Параметры опухоли")
 
-        # Длина волны (в нм) для расчета оптических свойств
         self.wavelength_nm = int(wavelength_nm) if wavelength_nm is not None else 650
 
         form = QFormLayout(self)
 
-        # Координаты опухоли
         self.cx = QDoubleSpinBox()
         self.cx.setRange(-100.0, 100.0)
         self.cx.setDecimals(1)
@@ -34,27 +32,20 @@ class TumorParamsDialog(QDialog):
         self.rz.setRange(0.0, 100.0)
         self.rz.setDecimals(1)
 
-        # Тип опухоли
         self.tumor_box = QComboBox()
-        # self.tumor_types = ['Меланома', 'Базалиома', 'Глиобластома', 'Аденокарцинома']
         self.tumor_types = ['Меланома', 'Базалиома']
         for t in self.tumor_types:
             self.tumor_box.addItem(t)
 
-        # Тип фотосенсибилизатора
         self.ps_box = QComboBox()
         self.ps_types = ['PpIX', 'Вертепорфин', 'Фотофрин']
         for p in self.ps_types:
             self.ps_box.addItem(p)
 
-        # Блок вывода оптических параметров
-        # disp_g = QGroupBox(f'Коэффициенты (при λ = {self.wavelength_nm} нм)')
-        # layout = QHBoxLayout()
-
         self.coeff_group = QGroupBox(f'Коэффициенты (при λ = {self.wavelength_nm} нм)')
         coeff_layout = QVBoxLayout(self.coeff_group)
 
-        coeff_form = QFormLayout()  # для аккуратной подписи к каждому полю
+        coeff_form = QFormLayout()
 
         self.mu_a_disp = QLineEdit()
         self.mu_a_disp.setReadOnly(True)
@@ -84,7 +75,6 @@ class TumorParamsDialog(QDialog):
         self.button_box.rejected.connect(self.reject)
         form.addRow(self.button_box)
 
-        # Заполнение начальными значениями (если переданы)
         if initial:
             self.cx.setValue(initial.get('cx', 7.5))
             self.cz.setValue(initial.get('cz', 4.5))
@@ -104,11 +94,8 @@ class TumorParamsDialog(QDialog):
             self.tumor_box.setCurrentIndex(0)
             self.ps_box.setCurrentIndex(0)
 
-        # Подключение к изменению выбора для обновления вывода
         self.tumor_box.currentIndexChanged.connect(self.update_optical_display)
         self.ps_box.currentIndexChanged.connect(self.update_optical_display)
-
-        # Первый вывод
         self.update_optical_display()
 
     def update_optical_display(self):
@@ -132,12 +119,6 @@ class TumorParamsDialog(QDialog):
         }
 
     def export_data(self) -> dict:
-        """
-        Возвращает полный словарь параметров, включая индексы типов:
-        - tumor_type_index: int (0..n)
-        - ps_type_index: int (0..m)
-        - tissue_type: str
-        """
         return {
             'coefficients': {
                 'cx': self.cx.value(),
@@ -164,8 +145,6 @@ if __name__ == "__main__":
     dialog = TumorParamsDialog(initial=curr_coef, wavelength_nm=650)
     if dialog.exec() == QDialog.Accepted:
         config = dialog.export_data()
-        # Здесь можно передать конфигурацию в модель/симулятор.
-        # Пример вывода в консоль (для демонстрации):
         print("Полученная конфигурация слоёв и параметров:")
         print(config)
     sys.exit(0)
